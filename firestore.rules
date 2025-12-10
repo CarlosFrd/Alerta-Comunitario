@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== REGRAS GERAIS =====
+
+    // Função auxiliar para verificar se é cidadão
+    function isCitizen() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cidadao';
+    }
+
+    // Função auxiliar para verificar se é operador
+    function isOperator() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operador';
+    }
+
+    // ===== COLEÇÃO: users =====
+
+    match /users/{userId} {
+      // Ler: Cada usuário pode ler seu próprio perfil e operadores podem ler todos
+      allow read: if request.auth.uid == userId || (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operador');
+
+      // Criar: Qualquer usuário autenticado pode criar seu próprio perfil
+      allow create: if request.auth.uid == userId &&
+                       request.resource.data.uid == userId &&
+                       request.resource.data.role in ['cidadao', 'operador'];
+
+      // Atualizar: Usuário pode atualizar seu próprio perfil
+      allow update: if request.auth.uid == userId &&
+                       request.resource.data.uid == userId;
+
+      // Deletar: Não permitir
+      allow delete: if false;
+    }
+
+    // ===== COLEÇÃO: reports =====
+
+    match /reports/{reportId} {
+      // Ler: Todos os usuários autenticados podem ler todos os reports
+      allow read: if request.auth != null;
+
+      // Criar: Apenas cidadãos podem criar agrupamentos de incidentes
+      allow create: if request.auth != null &&
+                       isCitizen();
+
+      // Atualizar:
+      //   - Cidadãos podem adicionar seus relatos a agrupamentos existentes
+      //   - Operadores podem atualizar status e finalizar agrupamentos
+      allow update: if request.auth != null && (
+                       isCitizen() ||
+                       isOperator()
+                    );
+
+      // Deletar: Apenas operadores podem deletar agrupamentos (ao finalizar)
+      allow delete: if request.auth != null && isOperator();
+    }
+
+    // ===== COLEÇÃO: alerts (Zonas de Risco) =====
+
+    match /alerts/{alertId} {
+      // Ler: Todos os usuários autenticados podem ler
+      allow read: if request.auth != null;
+
+      // Criar: Apenas operadores podem criar zonas de risco
+      allow create: if request.auth != null &&
+                       isOperator() &&
+                       request.resource.data.createdBy == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+
+      // Atualizar: Apenas operadores que criaram podem atualizar
+      allow update: if request.auth != null &&
+                       isOperator() &&
+                       resource.data.createdBy == request.auth.uid;
+
+      // Deletar: Apenas operadores que criaram podem deletar
+      allow delete: if request.auth != null &&
+                       isOperator() &&
+                       resource.data.createdBy == request.auth.uid;
+    }
+
+    // ===== DENY POR PADRÃO =====
+
+    // Negar acesso padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
