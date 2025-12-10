@@ -60,13 +60,26 @@ function initDrawControls() {
 async function onDrawCreated(e) {
     const layer = e.layer;
     const type = e.layerType;
-    
+
     console.log('🎨 Polígono criado:', type);
-    
+
+    // Solicitar mensagem do operador
+    const message = prompt('Digite a mensagem de alerta para esta área de risco:', 'Área de Risco - Evite circular por esta região');
+
+    // Se o usuário cancelar, não criar a zona
+    if (message === null) {
+        console.log('⚠️ Criação de zona cancelada pelo operador');
+        return;
+    }
+
+    // Validar mensagem
+    const description = message.trim() || 'Área de Risco - Alerta Oficial';
+
     const geoJSON = layer.toGeoJSON();
-    
+
     console.log('📍 GeoJSON:', geoJSON);
-    
+    console.log('📝 Mensagem:', description);
+
     try {
         const alertData = {
             type: type,
@@ -76,17 +89,17 @@ async function onDrawCreated(e) {
             createdBy: currentUser.uid,
             createdByName: currentUser.displayName || 'Operador',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            description: 'Área de Risco - Alerta Oficial'
+            description: description
         };
-        
+
         console.log('💾 Salvando zona de risco no Firestore...');
-        
+
         const docRef = await db.collection('alerts').add(alertData);
-        
+
         console.log('✅ Zona de risco salva com ID:', docRef.id);
-        
+
         alert('⚠️ Zona de Risco criada com sucesso!');
-        
+
     } catch (error) {
         console.error('❌ Erro ao salvar zona de risco:', error);
         alert('Erro ao criar zona de risco. Tente novamente.');
@@ -149,9 +162,9 @@ function addRiskZoneLayer(alertId, alertData, targetMap, editable) {
         console.warn('⚠️ Alerta sem geometria:', alertId);
         return;
     }
-    
+
     console.log('📍 Adicionando zona de risco:', alertId);
-    
+
     let geometry = alertData.geometry;
     if (typeof geometry === 'string') {
         try {
@@ -161,30 +174,37 @@ function addRiskZoneLayer(alertId, alertData, targetMap, editable) {
             return;
         }
     }
-    
+
     const layer = L.geoJSON(geometry, {
         style: {
             color: '#D32F2F',
             fillColor: '#D32F2F',
             fillOpacity: 0.3,
             weight: 3
-        }
+        },
+        pane: 'overlayPane' // Colocar em um pane inferior aos markers
     });
-    
+
     const popupContent = createRiskZonePopup(alertId, alertData, editable);
-    
+
     // Vincular popup a cada sublayer individualmente
     layer.eachLayer(l => {
         l.bindPopup(popupContent);
+
+        // Ajustar z-index para ficar abaixo dos markers
+        if (l.setStyle) {
+            l.bringToBack();
+        }
+
         if (editable && drawnItems) {
             drawnItems.addLayer(l);
         } else {
             l.addTo(targetMap);
         }
     });
-    
+
     riskZoneLayers[alertId] = layer;
-    
+
     console.log('✅ Zona de risco adicionada:', alertId);
 }
 

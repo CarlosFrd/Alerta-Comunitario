@@ -60,12 +60,7 @@ service cloud.firestore {
                        isCitizen() &&
                        request.resource.data.userId == request.auth.uid &&
                        request.resource.data.status == 'aberto' &&
-                       request.resource.data.createdAt == request.time &&
-                       // Verificar se o cidadão não tem outro relato ativo
-                       !exists(/databases/$(database)/documents/reports/anyReport) ||
-                       (getAfter(/databases/$(database)/documents).query(
-                         "SELECT * FROM reports WHERE userId == request.auth.uid AND status IN ('aberto', 'confirmado', 'atendimento')"
-                       ).size() == 0);
+                       request.resource.data.createdAt == request.time;
 
       // Atualizar:
       //   - Cidadãos podem atualizar apenas seus próprios reports (status não pode ir para 'resolvido')
@@ -141,13 +136,19 @@ service cloud.firestore {
 
 ## Alterações Importantes
 
-1. **Validação de Relatório Ativo**: A criação de novo report verificará se o cidadão não tem outro report com status 'aberto', 'confirmado' ou 'atendimento'
+1. **Estrutura de Reports**: Cada report agora pertence a um único cidadão (campo `userId` direto), sem agrupamento automático
 
-2. **Deleção ao Finalizar**: Quando operador clica em "Finalizar", o report é deletado (não apenas marcado como resolvido)
+2. **Validação de Relatório Ativo**: A verificação de report ativo é feita no código do cliente (client-side) antes de criar um novo report
 
-3. **Proteção de Dados**: Cidadãos não podem modificar o status para "resolvido" - apenas operadores podem deletar
+3. **Deleção ao Finalizar**: Quando operador clica em "Finalizar", o report é deletado (não apenas marcado como resolvido)
 
-4. **Auditoria**: Reports mantêm campos `updatedAt` e `updatedBy` para rastrear quem fez as alterações
+4. **Proteção de Dados**: Cidadãos não podem modificar o status para "resolvido" - apenas operadores podem deletar
+
+5. **Auditoria**: Reports mantêm campos `updatedAt` e `updatedBy` para rastrear quem fez as alterações
+
+6. **Clustering Visual**: O operador visualiza clustering automático baseado em zoom (Leaflet MarkerCluster), mas cada report permanece separado no banco de dados
+
+7. **Seleção Múltipla**: Operadores podem selecionar múltiplos reports (Ctrl+Click) e atualizar status em lote
 
 ---
 
