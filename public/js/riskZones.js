@@ -323,12 +323,27 @@ function removeRiskZoneLayer(alertId, targetMap) {
 async function deleteRiskZone(alertId) {
     try {
         console.log('🗑️ Removendo zona de risco:', alertId);
-        
-        await db.collection('alerts').doc(alertId).delete();
-        
-        console.log('✅ Zona de risco removida com sucesso');
+
+        // Primeiro, remover todos os status de cidadãos relacionados a esta zona
+        const citizenStatuses = await db.collection('citizenSafety')
+            .where('zoneId', '==', alertId)
+            .get();
+
+        console.log(`🗑️ Removendo ${citizenStatuses.size} status de cidadãos...`);
+
+        const batch = db.batch();
+        citizenStatuses.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+
+        // Deletar a zona
+        batch.delete(db.collection('alerts').doc(alertId));
+
+        await batch.commit();
+
+        console.log('✅ Zona de risco e status de cidadãos removidos com sucesso');
         alert('✅ Zona de Risco removida!');
-        
+
     } catch (error) {
         console.error('❌ Erro ao remover zona de risco:', error);
         alert('Erro ao remover zona de risco. Tente novamente.');

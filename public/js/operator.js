@@ -70,6 +70,11 @@ function initOperatorMap() {
         loadOperatorReports();
         loadRiskZones(operatorMap, true);
         initDrawControls();
+
+        // Carregar marcadores de cidadãos em zonas de risco
+        if (typeof loadCitizenSafetyMarkers === 'function') {
+            loadCitizenSafetyMarkers(operatorMap);
+        }
     });
 
     setTimeout(() => {

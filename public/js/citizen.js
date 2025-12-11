@@ -44,11 +44,11 @@ function getUserLocation() {
             
             currentUserLocation = { lat, lng };
             map.setView([lat, lng], 15);
-            
+
             if (userMarker) {
                 map.removeLayer(userMarker);
             }
-            
+
             const blueIcon = L.icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -65,6 +65,11 @@ function getUserLocation() {
                 .addTo(map)
                 .bindPopup('<b>📍 Você está aqui</b>')
                 .openPopup();
+
+            // Verificar se está em zona de risco
+            if (typeof checkCitizenInRiskZone === 'function') {
+                checkCitizenInRiskZone({ lat, lng });
+            }
         },
         (error) => {
             console.error('❌ Erro ao obter localização:', error);

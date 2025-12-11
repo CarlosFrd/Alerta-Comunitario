@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/base.css?v=20251127001">
     <link rel="stylesheet" href="css/components.css?v=20251127001">
     <link rel="stylesheet" href="css/operator.css?v=20251127001">
+    <link rel="stylesheet" href="css/citizenSafety.css?v=20251127001">
 </head>
 <body>
     <div class="container">
@@ -145,14 +146,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 
+    <!-- Turf.js para cálculos geométricos -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
     <!-- Cache Buster Script -->
     <script>
         // Force cache bust with timestamp
-        const cacheBuster = '20251127002';
+        const cacheBuster = '20251127003';
         document.write('<script src="js/config.js?v=' + cacheBuster + '"><\/script>');
         document.write('<script src="js/ui.js?v=' + cacheBuster + '"><\/script>');
         document.write('<script src="js/operator.js?v=' + cacheBuster + '"><\/script>');
         document.write('<script src="js/riskZones.js?v=' + cacheBuster + '"><\/script>');
+        document.write('<script src="js/citizenSafety.js?v=' + cacheBuster + '"><\/script>');
         document.write('<script src="js/auth.js?v=' + cacheBuster + '"><\/script>');
         document.write('<script src="js/main.js?v=' + cacheBuster + '"><\/script>');
     </script>

@@ -78,6 +78,37 @@ service cloud.firestore {
                        resource.data.createdBy == request.auth.uid;
     }
 
+    // ===== COLEÇÃO: citizenSafety (Status de Segurança em Zonas de Risco) =====
+
+    match /citizenSafety/{statusId} {
+      // Ler:
+      //   - Operadores podem ler todos os status (para visualizar no mapa)
+      //   - Cidadãos podem ler apenas seu próprio status
+      allow read: if request.auth != null && (
+                      isOperator() ||
+                      resource.data.userId == request.auth.uid
+                   );
+
+      // Criar: Cidadãos podem criar seu próprio status
+      allow create: if request.auth != null &&
+                       isCitizen() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // Atualizar:
+      //   - Cidadãos podem atualizar seu próprio status
+      allow update: if request.auth != null &&
+                       isCitizen() &&
+                       resource.data.userId == request.auth.uid;
+
+      // Deletar:
+      //   - Cidadãos podem deletar seu próprio status
+      //   - Operadores podem deletar qualquer status (ao remover zona)
+      allow delete: if request.auth != null && (
+                       (isCitizen() && resource.data.userId == request.auth.uid) ||
+                       isOperator()
+                    );
+    }
+
     // ===== DENY POR PADRÃO =====
 
     // Negar acesso padrão
