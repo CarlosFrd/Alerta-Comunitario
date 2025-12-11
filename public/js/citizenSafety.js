@@ -1,8 +1,43 @@
 // ===== SISTEMA DE SEGURANÇA DO CIDADÃO EM ZONAS DE RISCO =====
 
 let citizenSafetyListener = null;
+let citizenRiskZonesListener = null; // Renomeado para evitar conflito com riskZones.js
 let currentZoneCheck = null;
 const checkedZones = new Set(); // Zonas que já foram verificadas nesta sessão
+let activeRiskZones = []; // Cache das zonas de risco ativas
+let lastKnownLocation = null; // Última localização conhecida
+
+// ===== INICIALIZAR LISTENER DE ZONAS DE RISCO PARA CIDADÃO =====
+function initCitizenRiskZoneListener() {
+    if (!currentUser || currentUserRole !== 'cidadao') {
+        return;
+    }
+
+    console.log('🔥 Iniciando listener de zonas de risco para cidadão...');
+
+    // Escutar mudanças nas zonas de risco em tempo real
+    citizenRiskZonesListener = db.collection('alerts')
+        .where('active', '==', true)
+        .onSnapshot((snapshot) => {
+            console.log(`📊 Zonas de risco atualizadas: ${snapshot.size}`);
+
+            // Atualizar cache de zonas
+            activeRiskZones = [];
+            snapshot.forEach((doc) => {
+                activeRiskZones.push({
+                    id: doc.id,
+                    data: doc.data()
+                });
+            });
+
+            // Verificar se cidadão está em alguma zona agora
+            if (lastKnownLocation) {
+                checkCitizenInRiskZone(lastKnownLocation);
+            }
+        }, (error) => {
+            console.error('❌ Erro ao escutar zonas de risco:', error);
+        });
+}
 
 // ===== VERIFICAR SE CIDADÃO ESTÁ EM ZONA DE RISCO =====
 async function checkCitizenInRiskZone(location) {
@@ -10,21 +45,17 @@ async function checkCitizenInRiskZone(location) {
         return;
     }
 
+    // Salvar última localização conhecida
+    lastKnownLocation = location;
+
     console.log('🔍 Verificando se cidadão está em zona de risco...');
 
     try {
-        // Buscar todas as zonas de risco ativas
-        const zonesSnapshot = await db.collection('alerts')
-            .where('active', '==', true)
-            .get();
-
-        console.log(`📊 Encontradas ${zonesSnapshot.size} zonas ativas`);
-
         const point = turf.point([location.lng, location.lat]);
 
-        for (const zoneDoc of zonesSnapshot.docs) {
-            const zoneData = zoneDoc.data();
-            const zoneId = zoneDoc.id;
+        for (const zone of activeRiskZones) {
+            const zoneData = zone.data;
+            const zoneId = zone.id;
 
             let geometry = zoneData.geometry;
             if (typeof geometry === 'string') {
@@ -83,7 +114,7 @@ async function checkCitizenInRiskZone(location) {
             }
         }
 
-        // Se não está em nenhuma zona, remover status antigo se existir
+        // Se não está em nenhuma zona, verificar se há status antigos para limpar
         const oldStatuses = await db.collection('citizenSafety')
             .where('userId', '==', currentUser.uid)
             .get();
@@ -92,23 +123,30 @@ async function checkCitizenInRiskZone(location) {
             const statusData = statusDoc.data();
             const zoneId = statusData.zoneId;
 
-            // Verificar se ainda está nesta zona
-            const zoneDoc = await db.collection('alerts').doc(zoneId).get();
-            if (zoneDoc.exists) {
-                const zoneData = zoneDoc.data();
-                let geometry = zoneData.geometry;
-                if (typeof geometry === 'string') {
-                    geometry = JSON.parse(geometry);
-                }
+            // Verificar se esta zona ainda existe no cache de zonas ativas
+            const zoneStillExists = activeRiskZones.find(z => z.id === zoneId);
 
-                const polygon = turf.polygon(geometry.coordinates);
-                const isStillInside = turf.booleanPointInPolygon(point, polygon);
+            if (!zoneStillExists) {
+                // Zona foi deletada, remover status
+                await db.collection('citizenSafety').doc(statusDoc.id).delete();
+                console.log(`✅ Zona ${zoneId} foi deletada, status removido`);
+                continue;
+            }
 
-                if (!isStillInside) {
-                    // Saiu da zona, remover status
-                    await db.collection('citizenSafety').doc(statusDoc.id).delete();
-                    console.log(`✅ Cidadão saiu da zona ${zoneId}, status removido`);
-                }
+            // Verificar se ainda está dentro desta zona
+            const zoneData = zoneStillExists.data;
+            let geometry = zoneData.geometry;
+            if (typeof geometry === 'string') {
+                geometry = JSON.parse(geometry);
+            }
+
+            const polygon = turf.polygon(geometry.coordinates);
+            const isStillInside = turf.booleanPointInPolygon(point, polygon);
+
+            if (!isStillInside) {
+                // Saiu da zona, remover status
+                await db.collection('citizenSafety').doc(statusDoc.id).delete();
+                console.log(`✅ Cidadão saiu da zona ${zoneId}, status removido`);
             }
         }
 

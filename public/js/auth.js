@@ -272,13 +272,18 @@ function setupIndexPage(user, userData) {
     if (userData.role === 'cidadao') {
         if (authArea) authArea.classList.add('hidden');
         if (citizenArea) citizenArea.classList.remove('hidden');
-        
+
         const userNameDisplay = document.getElementById('user-name-display');
-        
+
         if (userNameDisplay) userNameDisplay.textContent = userData.name;
-        
+
         initCitizenMap();
-        
+
+        // Inicializar listener de zonas de risco em tempo real
+        if (typeof initCitizenRiskZoneListener === 'function') {
+            initCitizenRiskZoneListener();
+        }
+
     } else if (userData.role === 'operador') {
         redirectBasedOnRole('operador');
     }
