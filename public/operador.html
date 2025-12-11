@@ -47,7 +47,7 @@
             <div class="dashboard-layout">
                 
                 <!-- Coluna Esquerda: Sidebar com Lista de Relatos -->
-                <aside class="dashboard-sidebar">
+                <aside class="dashboard-sidebar" id="dashboard-sidebar">
                     <div class="sidebar-header">
                         <h3>📋 Relatos Recentes</h3>
                         <div class="stats-summary">
@@ -62,20 +62,9 @@
                             <option value="aberto">🟡 Aberto</option>
                             <option value="confirmado">🔴 Confirmado</option>
                             <option value="atendimento">🟠 Em Atendimento</option>
-                            <option value="resolvido">🟢 Resolvido</option>
                         </select>
                     </div>
 
-                    <!-- Ações de Seleção -->
-                    <div class="sidebar-selection-actions">
-                        <button id="select-all-btn" class="selection-action-btn">
-                            Selecionar Todos
-                        </button>
-                        <button id="deselect-all-btn" class="selection-action-btn selection-action-btn-cancel">
-                            Limpar Seleção
-                        </button>
-                    </div>
-                    
                     <!-- Lista de Relatos -->
                     <div class="reports-list" id="operator-reports-list">
                         <div class="empty-state">
@@ -98,8 +87,15 @@
                 
                 <!-- Coluna Direita: Mapa -->
                 <main class="dashboard-map-container">
+                    <!-- Botão de Toggle da Sidebar -->
+                    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Recolher/Expandir Painel">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                    </button>
+
                     <div id="operator-map"></div>
-                    
+
                     <!-- Legenda -->
                     <div class="map-legend">
                         <h4>Legenda</h4>

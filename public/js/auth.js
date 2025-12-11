@@ -292,6 +292,7 @@ function setupOperatorPage(user, userData) {
     if (loadingScreen) loadingScreen.classList.add('hidden');
     if (operatorPanel) operatorPanel.classList.remove('hidden');
     if (operatorName) operatorName.textContent = userData.name;
-    
+
     initOperatorMap();
+    initSidebarToggle();
 }

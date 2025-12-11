@@ -6,6 +6,7 @@ let operatorReportsListener = null;
 let selectedReportId = null;
 let selectedReportIds = new Set(); // Para seleção múltipla
 let allReports = [];
+let sidebarCollapsed = false;
 
 // ===== FUNÇÕES DO OPERADOR =====
 
@@ -166,6 +167,13 @@ function addOperatorReportMarker(reportId, report) {
         // Se Ctrl/Cmd está pressionado, alternar seleção
         if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
             toggleReportSelection(reportId);
+
+            // Se removeu a seleção e era o único selecionado, limpar selectedReportId
+            if (!selectedReportIds.has(reportId)) {
+                if (selectedReportId === reportId) {
+                    selectedReportId = null;
+                }
+            }
         } else {
             // Limpar seleções anteriores e selecionar apenas este
             selectedReportIds.clear();
@@ -174,6 +182,7 @@ function addOperatorReportMarker(reportId, report) {
         }
 
         updateMarkerStyles();
+        updateCardStyles();
         updateBulkActionBar();
     });
 
@@ -209,6 +218,21 @@ function updateMarkerStyles() {
             });
         }
     }
+}
+
+function updateCardStyles() {
+    // Atualizar estilos dos cards baseado na seleção
+    document.querySelectorAll('.report-card').forEach(card => {
+        const reportId = card.dataset.reportId;
+
+        // Remover ambas as classes primeiro
+        card.classList.remove('selected', 'multi-selected');
+
+        // Adicionar classe apropriada se estiver selecionado
+        if (selectedReportIds.has(reportId)) {
+            card.classList.add('multi-selected');
+        }
+    });
 }
 
 function updateBulkActionBar() {
@@ -254,18 +278,10 @@ function updateBulkActionBar() {
 
 function clearBulkSelection() {
     selectedReportIds.clear();
-
-    // Desmarcar todos os checkboxes
-    document.querySelectorAll('.report-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-
-    // Remover classe multi-selected dos cards
-    document.querySelectorAll('.report-card').forEach(card => {
-        card.classList.remove('multi-selected');
-    });
+    selectedReportId = null;
 
     updateMarkerStyles();
+    updateCardStyles();
     updateBulkActionBar();
 }
 
@@ -431,60 +447,6 @@ function updateOperatorUI() {
         const card = createReportCard(report);
         reportsList.appendChild(card);
     });
-
-    // Configurar botões de seleção (apenas uma vez)
-    setupSelectionButtons();
-}
-
-function setupSelectionButtons() {
-    const selectAllBtn = document.getElementById('select-all-btn');
-    const deselectAllBtn = document.getElementById('deselect-all-btn');
-
-    // Remover listeners antigos
-    if (selectAllBtn) {
-        selectAllBtn.replaceWith(selectAllBtn.cloneNode(true));
-    }
-    if (deselectAllBtn) {
-        deselectAllBtn.replaceWith(deselectAllBtn.cloneNode(true));
-    }
-
-    // Adicionar novos listeners
-    const newSelectAllBtn = document.getElementById('select-all-btn');
-    const newDeselectAllBtn = document.getElementById('deselect-all-btn');
-
-    if (newSelectAllBtn) {
-        newSelectAllBtn.addEventListener('click', selectAllReports);
-    }
-
-    if (newDeselectAllBtn) {
-        newDeselectAllBtn.addEventListener('click', clearBulkSelection);
-    }
-}
-
-function selectAllReports() {
-    const statusFilter = document.getElementById('status-filter');
-    const filterValue = statusFilter ? statusFilter.value : 'all';
-    const filteredReports = filterValue === 'all'
-        ? allReports
-        : allReports.filter(r => (r.status || 'aberto') === filterValue);
-
-    // Adicionar todos os reports visíveis à seleção
-    filteredReports.forEach(report => {
-        selectedReportIds.add(report.id);
-    });
-
-    // Atualizar checkboxes
-    document.querySelectorAll('.report-checkbox').forEach(checkbox => {
-        checkbox.checked = true;
-    });
-
-    // Atualizar cards
-    document.querySelectorAll('.report-card').forEach(card => {
-        card.classList.add('multi-selected');
-    });
-
-    updateMarkerStyles();
-    updateBulkActionBar();
 }
 
 function createReportCard(report) {
@@ -510,24 +472,12 @@ function createReportCard(report) {
     card.className = 'report-card';
     card.dataset.reportId = report.id;
 
-    if (selectedReportId === report.id) {
-        card.classList.add('selected');
-    }
-
+    // As classes de seleção serão adicionadas por updateCardStyles()
     if (selectedReportIds.has(report.id)) {
         card.classList.add('multi-selected');
     }
 
-    const isChecked = selectedReportIds.has(report.id);
-
     card.innerHTML = `
-        <div class="report-card-checkbox">
-            <input type="checkbox"
-                   class="report-checkbox"
-                   data-report-id="${report.id}"
-                   ${isChecked ? 'checked' : ''}
-                   onclick="event.stopPropagation()">
-        </div>
         <div class="report-card-content">
             <div class="report-card-header">
                 <span class="report-type">${typeIcon} ${typeName}</span>
@@ -541,24 +491,28 @@ function createReportCard(report) {
         </div>
     `;
 
-    // Evento do checkbox
-    const checkbox = card.querySelector('.report-checkbox');
-    checkbox.addEventListener('change', (e) => {
-        e.stopPropagation();
-        if (e.target.checked) {
-            selectedReportIds.add(report.id);
-            card.classList.add('multi-selected');
+    // Evento de click no card com suporte a Ctrl+Click
+    card.addEventListener('click', (e) => {
+        // Se Ctrl/Cmd está pressionado, alternar seleção múltipla
+        if (e.ctrlKey || e.metaKey) {
+            toggleReportSelection(report.id);
+
+            // Se removeu a seleção e era o único selecionado, limpar selectedReportId
+            if (!selectedReportIds.has(report.id)) {
+                if (selectedReportId === report.id) {
+                    selectedReportId = null;
+                }
+            }
         } else {
-            selectedReportIds.delete(report.id);
-            card.classList.remove('multi-selected');
+            // Limpar seleções anteriores e selecionar apenas este
+            selectedReportIds.clear();
+            selectedReportIds.add(report.id);
+            selectReport(report.id);
         }
+
         updateMarkerStyles();
         updateBulkActionBar();
-    });
-
-    // Evento de click no card
-    card.addEventListener('click', () => {
-        selectReport(report.id);
+        updateCardStyles();
     });
 
     return card;
@@ -566,16 +520,6 @@ function createReportCard(report) {
 
 function selectReport(reportId) {
     selectedReportId = reportId;
-
-    document.querySelectorAll('.report-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-
-    const cards = document.querySelectorAll('.report-card');
-    const selectedIndex = allReports.findIndex(r => r.id === reportId);
-    if (selectedIndex >= 0 && cards[selectedIndex]) {
-        cards[selectedIndex].classList.add('selected');
-    }
 
     const report = allReports.find(r => r.id === reportId);
     if (report && report.location && operatorMap) {
@@ -585,5 +529,26 @@ function selectReport(reportId) {
         if (operatorReportMarkers[reportId]) {
             operatorReportMarkers[reportId].openPopup();
         }
+    }
+}
+
+// ===== CONTROLE DA SIDEBAR =====
+function initSidebarToggle() {
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.getElementById('dashboard-sidebar');
+
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebarCollapsed = !sidebarCollapsed;
+            sidebar.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('sidebar-collapsed');
+
+            // Aguardar a animação e então redimensionar o mapa
+            setTimeout(() => {
+                if (operatorMap) {
+                    operatorMap.invalidateSize();
+                }
+            }, 300);
+        });
     }
 }
