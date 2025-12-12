@@ -70,3 +70,7 @@ public/js/config.js
 
 # dataconnect generated files
 .dataconnect
+
+# Arquivos markdown de documentação interna (exceto README.md)
+*.md
+!README.md
