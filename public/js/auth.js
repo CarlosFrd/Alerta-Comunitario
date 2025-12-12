@@ -135,17 +135,19 @@ async function loginUser(email, password) {
         const user = userCredential.user;
 
         const userDoc = await db.collection('users').doc(user.uid).get();
-        
+
         if (!userDoc.exists) {
             throw new Error('Dados do usuário não encontrados no banco de dados.');
         }
 
         const userData = userDoc.data();
         console.log('✅ Login bem-sucedido:', user.uid, '| Role:', userData.role);
-        
+
         return { success: true, user: user, role: userData.role, userData: userData };
     } catch (error) {
         console.error('❌ Erro no login:', error);
+        console.error('❌ Código do erro:', error.code);
+        console.error('❌ Mensagem do erro:', error.message);
         return { success: false, error: getErrorMessage(error.code) };
     }
 }
@@ -178,7 +180,7 @@ async function getUserData(uid) {
 
 function redirectBasedOnRole(role) {
     const currentPage = window.location.pathname.split('/').pop();
-    
+
     if (role === 'operador') {
         if (currentPage !== 'operador.html') {
             window.location.href = 'operador.html';
@@ -186,6 +188,9 @@ function redirectBasedOnRole(role) {
     } else if (role === 'cidadao') {
         if (currentPage !== 'index.html' && currentPage !== '') {
             window.location.href = 'index.html';
+        } else {
+            // Se já está na index.html, força reload para atualizar a UI
+            window.location.reload();
         }
     }
 }

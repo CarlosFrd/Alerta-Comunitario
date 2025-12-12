@@ -25,13 +25,22 @@ window.getErrorMessage = function(errorCode) {
         'auth/operation-not-allowed': 'Operação não permitida.',
         'auth/weak-password': 'Senha muito fraca. Use no mínimo 6 caracteres.',
         'auth/user-disabled': 'Esta conta foi desabilitada.',
-        'auth/user-not-found': 'Usuário não encontrado.',
-        'auth/wrong-password': 'Senha incorreta.',
-        'auth/invalid-credential': 'Credenciais inválidas. Verifique e-mail e senha.',
-        'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.'
+        'auth/user-not-found': 'Email ou senha incorretos.',
+        'auth/wrong-password': 'Email ou senha incorretos.',
+        'auth/invalid-credential': 'Email ou senha incorretos.',
+        'auth/invalid-login-credentials': 'Email ou senha incorretos.',
+        'auth/missing-password': 'Email ou senha incorretos.',
+        'auth/invalid-password': 'Email ou senha incorretos.',
+        'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+        'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.'
     };
 
-    return errorMessages[errorCode] || 'Erro desconhecido. Tente novamente.';
+    // Log para debug quando encontrar erro desconhecido
+    if (!errorMessages[errorCode]) {
+        console.warn('⚠️ Código de erro desconhecido:', errorCode);
+    }
+
+    return errorMessages[errorCode] || 'Email ou senha incorretos.';
 };
 
 // ===== FUNÇÕES AUXILIARES PARA DEBUG =====
