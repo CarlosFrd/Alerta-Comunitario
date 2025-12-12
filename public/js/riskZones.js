@@ -302,21 +302,27 @@ function updateRiskZoneLayer(alertId, alertData, targetMap, editable) {
 function removeRiskZoneLayer(alertId, targetMap) {
     if (riskZoneLayers[alertId]) {
         const layer = riskZoneLayers[alertId];
-        
-        if (drawnItems && drawnItems.hasLayer) {
-            layer.eachLayer(l => {
-                if (drawnItems.hasLayer(l)) {
-                    drawnItems.removeLayer(l);
-                }
-            });
-        }
-        
+
+        // Remover cada sublayer individualmente
+        layer.eachLayer(l => {
+            // Remover de drawnItems se existir (operador)
+            if (drawnItems && drawnItems.hasLayer && drawnItems.hasLayer(l)) {
+                drawnItems.removeLayer(l);
+            }
+
+            // Remover do mapa se existir
+            if (targetMap && targetMap.hasLayer(l)) {
+                targetMap.removeLayer(l);
+            }
+        });
+
+        // Remover o layer principal também (por garantia)
         if (targetMap) {
             layer.remove();
         }
-        
+
         delete riskZoneLayers[alertId];
-        console.log('🗑️ Zona de risco removida:', alertId);
+        console.log('🗑️ Zona de risco removida do mapa:', alertId);
     }
 }
 
